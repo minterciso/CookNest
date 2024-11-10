@@ -1,0 +1,34 @@
+--
+-- File generated with SQLiteStudio v3.4.4 on Sun Nov 10 19:04:20 2024
+--
+-- Text encoding used: UTF-8
+--
+PRAGMA foreign_keys = off;
+BEGIN TRANSACTION;
+
+-- Table: clients
+CREATE TABLE IF NOT EXISTS clients (id INTEGER PRIMARY KEY AUTOINCREMENT, first_name TEXT (200) NOT NULL, last_name TEXT (200) NOT NULL, email TEXT (200) NOT NULL UNIQUE, telefone TEXT (20) NOT NULL UNIQUE);
+
+-- Table: items
+CREATE TABLE IF NOT EXISTS items (
+	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+	name TEXT NOT NULL,
+	"type" TEXT NOT NULL
+, product_id INTEGER NOT NULL);
+
+-- Table: product
+CREATE TABLE IF NOT EXISTS product (
+	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+	name TEXT(200) NOT NULL
+);
+
+-- Table: recipies
+CREATE TABLE IF NOT EXISTS recipies (
+	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT
+);
+
+-- Table: sells
+CREATE TABLE IF NOT EXISTS sells (client_id INTEGER REFERENCES clients (id) ON DELETE CASCADE ON UPDATE CASCADE, product_id INTEGER REFERENCES product (id) ON DELETE CASCADE ON UPDATE CASCADE, amount INTEGER NOT NULL);
+
+COMMIT TRANSACTION;
+PRAGMA foreign_keys = on;

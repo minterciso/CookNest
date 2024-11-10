@@ -1,46 +1,63 @@
 #include "databasemanager.h"
 #include <QRegularExpression>
+#include <QStandardPaths>
+#include <QFileInfo>
+#include <QDir>
 
-// Singleton instance
 DatabaseManager& DatabaseManager::instance() {
     static DatabaseManager instance;
     return instance;
 }
 
-// Constructor
 DatabaseManager::DatabaseManager() {
     db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setConnectOptions("QSQLITE_USE_QVFS");
+    db.setConnectOptions("QSQLITE_USE_QT_VFS");
     this->error.clear();
 }
 
-// Destructor
 DatabaseManager::~DatabaseManager() {
     closeDatabase();
 }
 
-// Open the SQLite database
-bool DatabaseManager::openDatabase(const QString &dbName) {
+bool DatabaseManager::openDatabase() {
     QMutexLocker locker(&mutex);
     if (db.isOpen()) return true;
 
-    db.setDatabaseName(dbName);
+    // Try to get a default database location, on the documents folder
+    QString databasePath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    databasePath.append("/CookNest");
+    // First, check if the directory exist
+    if(!QDir(databasePath).exists()){
+        QDir().mkdir(databasePath);
+    }
+    databasePath.append("/default.db");
+
+    // Now check if the database already exists
+    bool dbExists = false;
+    if(QFileInfo::exists(databasePath))
+        dbExists = true;
+
+    db.setDatabaseName(databasePath);
     if (!db.open()) {
         this->error.append("Unable to open database: ");
         this->error.append(db.lastError().text());
         return false;
     }
+    // If the database is a new one, execute the SQL Schema script
+    if(!dbExists){
+        QFile schemaFile(":/data/database/schema.sql");
+        if(!this->executeQueryFromFile(schemaFile))
+            return false;
+    }
     return true;
 }
 
-// Close the SQLite database
 void DatabaseManager::closeDatabase() {
     QMutexLocker locker(&mutex);
     if (db.isOpen())
         db.close();
 }
 
-// Execute a query and return the result
 QSqlQuery DatabaseManager::executeQuery(const QString &queryStr) {
     QMutexLocker locker(&mutex);
     QSqlQuery query(db);
@@ -51,14 +68,8 @@ QSqlQuery DatabaseManager::executeQuery(const QString &queryStr) {
     return query;
 }
 
-/**
- * @brief Execute a suit of queries from a SQL File.
- * @param qf The File that has the SQL Script to execute
- * @return boolean
- */
 bool DatabaseManager::executeQueryFromFile(QFile &qf) {
-    QMutexLocker locker(&mutex);
-    // Rad the file content
+    // Read the file content
     qf.open(QIODevice::ReadOnly);
     QString queryStr(qf.readAll());
     qf.close();
@@ -86,4 +97,10 @@ bool DatabaseManager::executeQueryFromFile(QFile &qf) {
 // Check if the database is open
 bool DatabaseManager::isOpen() const {
     return db.isOpen();
+}
+
+QString DatabaseManager::getError(){
+    QString retError = this->error;
+    this->error.clear();
+    return retError;
 }

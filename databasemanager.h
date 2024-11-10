@@ -1,9 +1,9 @@
 #ifndef DATABASEMANAGER_H
 #define DATABASEMANAGER_H
 
-#include <QtSql/QSqlDatabase>
-#include <QtSql/QSqlQuery>
-#include <QtSql/QSqlError>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
 #include <QFile>
 #include <QVariant>
 #include <QMutex>
@@ -15,15 +15,36 @@ class DatabaseManager {
 public:
     static DatabaseManager& instance();
 
-    bool openDatabase(const QString &dbName);
+    /**
+     * @brief Open the database, if the database does not exist, create and execute the initial schema file.
+     * @return true if the database was opened successfully, false otherwise
+     */
+    bool openDatabase();
+
+    /**
+     * @brief Close the database gracefully
+     */
     void closeDatabase();
 
     QSqlQuery executeQuery(const QString &queryStr);
+    /**
+     * @brief Execute a suit of queries from a SQL File.
+     * @param qf The File that has the SQL Script to execute
+     * @return true if the file was executed successfully, false otherwise and set the error parameter
+     */
     bool executeQueryFromFile(QFile &qf);
 
+    /**
+     * @brief Check if the database is open, and return the status.
+     * @return true if the database is open, false otherwise
+     */
     bool isOpen() const;
 
-    QString getError(void){ return this->error; }
+    /**
+     * @brief Get the last error found.
+     * @return The last error found.
+     */
+    QString getError(void);
 
 private:
     DatabaseManager();
