@@ -4,10 +4,11 @@
 
 #include <QMessageBox>
 #include <QInputDialog>
+#include <QSettings>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::MainWindow), productId(-1)
+    , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
 }
@@ -50,12 +51,18 @@ void MainWindow::startDatabase(){
 
 void MainWindow::on_actionQuit_triggered()
 {
+    // Before quiting, close the product
+    this->on_actionClose_triggered();
+    // Now quit the application
     QApplication::quit();
 }
 
 
 void MainWindow::on_actionNew_triggered()
 {
+    // First, close if there's anything open
+    this->on_actionClose_triggered();
+
     // Open a Input Dialog to query the user the name of the product.
     bool ok;
     QMessageBox msgBox;
@@ -109,15 +116,18 @@ void MainWindow::on_actionNew_triggered()
         msgBox.exec();
         return;
     }
-    // Get the product id and store it
+    // Get the product id and store it on the Settings
     query.clear();
     queryText = "SELECT id FROM product WHERE name='";
     queryText.append(newProductName);
     queryText.append("';");
     query = DatabaseManager::instance().executeQuery(queryText);
     query.first();
-    this->productId = query.value("id").toInt();
-    qDebug() << "NewProduct: Product " << newProductName << " created with id: " << this->productId;
+    QSettings settings;
+    settings.beginGroup("product");
+    settings.setValue("open", true);
+    settings.setValue("id", query.value("id").toInt());
+    settings.endGroup();
     // All is goot, so allow the tab widget to be used
     this->ui->tabWidget->setDisabled(false);
     qDebug() << "NewProduct: Product created and enabled";
@@ -126,6 +136,8 @@ void MainWindow::on_actionNew_triggered()
 
 void MainWindow::on_actionOpen_triggered()
 {
+    // First, close if there's anything open
+    this->on_actionClose_triggered();
     // Try to open an existing product. This should open a list of products to open, in the Input Dialog
     QStringList productsList;
     bool ok;
@@ -147,20 +159,28 @@ void MainWindow::on_actionOpen_triggered()
     queryText.append("'");
     query = DatabaseManager::instance().executeQuery(queryText);
     query.first();
-    this->productId = query.value("id").toInt();
-    qDebug() << "OpenProduct: Product " << selectedProduct << " opened with id " << this->productId;
+    QSettings settings;
+    settings.beginGroup("product");
+    settings.setValue("open", true);
+    settings.setValue("id", query.value("id").toInt());
+    settings.endGroup();
     this->ui->tabWidget->setDisabled(false);
 }
 
 
 void MainWindow::on_actionClose_triggered()
 {
-    // Simply remove the "productId" from the memory, and set the tabs to false
-    if(this->productId != -1){
-        qDebug() << "CloseProduct: Closing product with id " << this->productId;
-        this->productId = -1;
+    // Simply remove the "productId" from the memory, and set the tabs to false, as well as correct the settings
+    QSettings settings;
+    settings.beginGroup("product");
+
+    if(settings.value("open").toBool()){
+        qDebug() << "CloseProduct: Closing product with id " << settings.value("id").toInt();
+        settings.setValue("open", false);
+        settings.setValue("id", -1);
         this->ui->tabWidget->setDisabled(true);
         qDebug() << "CloseProduct: Product Closed";
     }
+    settings.endGroup();
 }
 
