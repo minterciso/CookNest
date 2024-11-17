@@ -26,7 +26,15 @@ public:
      */
     void closeDatabase();
 
+    QSqlDatabase& get(){ return this->db; }
+
+    /**
+     * @brief Execute a simple query via a passed string
+     * @param queryStr The string to execute the query
+     * @return A QSqlQuery object, executed with the passed string
+     */
     QSqlQuery executeQuery(const QString &queryStr);
+
     /**
      * @brief Execute a suit of queries from a SQL File.
      * @param qf The File that has the SQL Script to execute
